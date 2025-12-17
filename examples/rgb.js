@@ -1,47 +1,56 @@
-const ToyPad = require("../main.js");
-    toyPad = new ToyPad();
+import { ToyPad } from "../dist/index.js";
 
+const toyPad = new ToyPad();
 
-let PanelStates = {
-    [ToyPad.Panel.LEFT]: 0x0,
-    [ToyPad.Panel.RIGHT]: 0x0,
-    [ToyPad.Panel.CENTER]: 0x0
+const panelStates = {
+  [ToyPad.Panel.LEFT]: 0x0,
+  [ToyPad.Panel.RIGHT]: 0x0,
+  [ToyPad.Panel.CENTER]: 0x0
 };
 
+const colors = {
+  "04 07 c9 52 99 40 81": 0xff0000, // Wyldstyle
+  "04 fc f3 8a 71 40 80": 0x00ff00, // Batman
+  "04 9f 1f 8a 71 40 80": 0x0000ff // Gandalf
+};
 
-const Colors = {
-    '07 c9 52 99 40 81': 0xff0000, // Wyldstyle
-    'fc f3 8a 71 40 80': 0x00ff00, // Batman
-    '9f 1f 8a 71 40 80': 0x0000ff // Gandalf
-}
+await toyPad.connect();
+console.log("ToyPad connected");
 
-
-toyPad.on("connect", () => {
-    console.log("ToyPad connected");
+toyPad.on("disconnect", () => {
+  console.log("ToyPad disconnected");
 });
 
-
-toyPad.on("error", () => {
-    console.log("ToyPad connection error");
+toyPad.on("error", (error) => {
+  console.error("ToyPad connection error", error);
 });
 
-
-toyPad.on("add", (data) => {
-
-    console.log(`Minifig added to panel ${data.panel} (${data.sig})`);
-    PanelStates[data.panel] = PanelStates[data.panel] | Colors[data.sig];
-    toyPad.fade(data.panel, 20, 1, PanelStates[data.panel]);
-
+toyPad.on("add", async (event) => {
+  const color = colors[event.signature];
+  if (color === undefined) {
+    console.log(`Unknown minifig on panel ${event.panel} (${event.signature})`);
+    return;
+  }
+  console.log(`Minifig added to panel ${event.panel} (${event.signature})`);
+  panelStates[event.panel] = (panelStates[event.panel] ?? 0) | color;
+  try {
+    await toyPad.fade(event.panel, 20, 1, panelStates[event.panel]);
+  } catch (error) {
+    console.error("Failed to apply color", error);
+  }
 });
 
-
-toyPad.on("remove", (data) => {
-
-    console.log(`Minifig removed from panel ${data.panel} (${data.sig})`);
-    PanelStates[data.panel] = PanelStates[data.panel] ^ Colors[data.sig];
-    toyPad.fade(data.panel, 15, 1, PanelStates[data.panel]);
-
+toyPad.on("remove", async (event) => {
+  const color = colors[event.signature];
+  if (color === undefined) {
+    console.log(`Unknown minifig removed from panel ${event.panel} (${event.signature})`);
+    return;
+  }
+  console.log(`Minifig removed from panel ${event.panel} (${event.signature})`);
+  panelStates[event.panel] = (panelStates[event.panel] ?? 0) ^ color;
+  try {
+    await toyPad.fade(event.panel, 15, 1, panelStates[event.panel]);
+  } catch (error) {
+    console.error("Failed to update color", error);
+  }
 });
-
-
-toyPad.connect();
