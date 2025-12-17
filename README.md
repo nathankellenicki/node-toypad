@@ -19,13 +19,13 @@ toyPad.on("connect", () => {
 });
 
 toyPad.on("add", async (event) => {
-  const { id, type } = await toyPad.readTag(event.panel);
+  const { id, type, signature } = await toyPad.readTag(event.panel, event.signature);
   if (type === TagType.Character) {
     const info = metadata.getCharacterById(id);
-    console.log(`Character detected on panel ${event.panel}: ${info?.name ?? `#${id}`}`);
+    console.log(`Character ${info?.name ?? `#${id}`} detected (signature ${signature}).`);
   } else {
     const info = metadata.getVehicleById(id);
-    console.log(`Vehicle detected on panel ${event.panel}: ${info?.name ?? `#${id}`}`);
+    console.log(`Vehicle ${info?.name ?? `#${id}`} detected (signature ${signature}).`);
   }
 });
 

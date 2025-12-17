@@ -26,7 +26,14 @@ export interface ToyPadEvents {
 export interface ToyPadTagInfo {
   id: number;
   type: TagType;
+  signature: string;
 }
+
+type ActiveTag = {
+  index: number;
+  uid: Buffer;
+  signature: string;
+};
 
 export class ToyPad extends EventEmitter {
   static Panel = ToyPadPanel;
@@ -38,7 +45,7 @@ export class ToyPad extends EventEmitter {
   };
 
   private connection?: ToyPadConnection;
-  private readonly activeTags = new Map<ToyPadPanel, { index: number; uid: Buffer }>();
+  private readonly activeTags = new Map<ToyPadPanel, Map<string, ActiveTag>>();
 
   async connect(): Promise<void> {
     if (this.connection) {
@@ -84,10 +91,28 @@ export class ToyPad extends EventEmitter {
     await connection.request(createFlashCommand(panel, color, count, options));
   }
 
-  async readTag(panel: ToyPadPanel): Promise<ToyPadTagInfo> {
-    const tag = this.activeTags.get(panel);
-    if (!tag) {
+  async readTag(panel: ToyPadPanel, signature?: string): Promise<ToyPadTagInfo> {
+    const panelTags = this.activeTags.get(panel);
+    if (!panelTags || panelTags.size === 0) {
       throw new Error(`No tag present on panel ${panel}.`);
+    }
+    let tag: ActiveTag | undefined;
+    if (signature) {
+      tag = panelTags.get(this.normalizeSignature(signature));
+      if (!tag) {
+        throw new Error(`No tag with signature ${signature} on panel ${panel}.`);
+      }
+    } else if (panelTags.size === 1) {
+      tag = panelTags.values().next().value;
+    } else {
+      const available = Array.from(panelTags.values())
+        .map((value) => value.signature)
+        .join(", ");
+      throw new Error(`Multiple tags present on panel ${panel}. Specify signature (${available}).`);
+    }
+
+    if (!tag) {
+      throw new Error("Unable to determine which tag to read.");
     }
 
     const connection = this.ensureConnection();
@@ -107,16 +132,16 @@ export class ToyPad extends EventEmitter {
     const type = detectTagType(payloadView);
     if (type === TagType.Vehicle) {
       const id = getVehicleId(cardData);
-      return { id, type };
+      return { id, type, signature: tag.signature };
     }
     if (type === TagType.Character) {
       const id = getCharacterId(tag.uid, cardData.subarray(0, 8));
       if (!id) {
         throw new Error("Unable to decrypt character id from tag.");
       }
-      return { id, type };
+      return { id, type, signature: tag.signature };
     }
-    return { id: 0, type: TagType.Unknown };
+    return { id: 0, type: TagType.Unknown, signature: tag.signature };
   }
 
   private ensureConnection(): ToyPadConnection {
@@ -130,15 +155,29 @@ export class ToyPad extends EventEmitter {
     this.emit("event", event);
     if (event.action === ActionType.Add) {
       if (event.panel !== ToyPadPanel.All) {
-        this.activeTags.set(event.panel, { index: event.index, uid: event.raw });
+        const tagKey = this.normalizeSignature(event.signature);
+        const panelTags = this.activeTags.get(event.panel) ?? new Map<string, ActiveTag>();
+        panelTags.set(tagKey, { index: event.index, uid: event.raw, signature: event.signature });
+        this.activeTags.set(event.panel, panelTags);
       }
       this.emit("add", event);
     } else {
       if (event.panel !== ToyPadPanel.All) {
-        this.activeTags.delete(event.panel);
+        const tagKey = this.normalizeSignature(event.signature);
+        const panelTags = this.activeTags.get(event.panel);
+        if (panelTags) {
+          panelTags.delete(tagKey);
+          if (!panelTags.size) {
+            this.activeTags.delete(event.panel);
+          }
+        }
       }
       this.emit("remove", event);
     }
+  }
+
+  private normalizeSignature(signature: string): string {
+    return signature.trim().toLowerCase();
   }
 }
 
