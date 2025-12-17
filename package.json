@@ -14,7 +14,8 @@
   "author": "Nathan Kellenicki <nathan@kellenicki.com>",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "data"
   ],
   "dependencies": {
     "debug": "^4.4.3",

@@ -26,7 +26,8 @@ export enum RequestType {
   SetColor = 0xc0,
   GetColor = 0xc1,
   Fade = 0xc2,
-  Flash = 0xc3
+  Flash = 0xc3,
+  ReadTag = 0xd2
 }
 
 export enum ActionType {

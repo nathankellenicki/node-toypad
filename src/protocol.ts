@@ -15,6 +15,8 @@ export interface ToyPadTagEvent {
   kind: "event";
   panel: ToyPadPanel;
   action: ActionType;
+  index: number;
+  tagType: number;
   signature: string;
   raw: Buffer;
 }
@@ -92,6 +94,13 @@ export function createFlashCommand(
   };
 }
 
+export function createReadTagCommand(index: number, page: number): ToyPadCommand {
+  return {
+    id: RequestType.ReadTag,
+    params: [index & 0xff, page & 0xff]
+  };
+}
+
 export function decodeColor(payload: Buffer): number {
   if (payload.length < 3) {
     return 0;
@@ -123,12 +132,16 @@ function decodeActionEvent(data: Buffer): ToyPadTagEvent | undefined {
     return undefined;
   }
   const panel = normalizePanel(data[2]);
+  const tagType = data[3] & 0xff;
+  const index = data[4] & 0xff;
   const action = normalizeAction(data[5]);
   const signatureBytes = data.subarray(6, 13);
   return {
     kind: "event",
     panel,
     action,
+    index,
+    tagType,
     signature: formatSignature(signatureBytes),
     raw: Buffer.from(signatureBytes)
   };
