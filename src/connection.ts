@@ -16,8 +16,8 @@ import {
   encodeCommand
 } from "./protocol";
 
-const log = debug("node-legodimensions:connection");
-const rawLog = debug("node-legodimensions:connection:raw");
+const log = debug("node-toypad:connection");
+const rawLog = debug("node-toypad:connection:raw");
 
 type PendingRequest = {
   resolve: (payload: Buffer) => void;

@@ -12,6 +12,7 @@ import {
   decodeColor
 } from "./protocol";
 import { TagType, detectTagType, getCharacterId, getVehicleId } from "./tag";
+import { getCharacterById, getVehicleById, listCharacters, listVehicles } from "./metadata";
 
 export interface ToyPadEvents {
   connect: () => void;
@@ -29,6 +30,12 @@ export interface ToyPadTagInfo {
 
 export class ToyPad extends EventEmitter {
   static Panel = ToyPadPanel;
+  static metadata = {
+    getCharacterById,
+    getVehicleById,
+    listCharacters,
+    listVehicles
+  };
 
   private connection?: ToyPadConnection;
   private readonly activeTags = new Map<ToyPadPanel, { index: number; uid: Buffer }>();

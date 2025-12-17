@@ -1,14 +1,15 @@
 {
-  "name": "node-legodimensions",
-  "version": "2.0.0",
-  "description": "Lego Dimensions ToyPad library for Node.js",
+  "name": "node-toypad",
+  "version": "1.0.0",
+  "description": "A JavaScript module to control the LEGO Dimensions Toy Pad",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist",
     "prepare": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:connection": "node tests/toypad-connection-test.js"
   },
   "author": "Nathan Kellenicki <nathan@kellenicki.com>",
@@ -24,7 +25,9 @@
   "devDependencies": {
     "@types/debug": "^4.1.12",
     "@types/node": "^25.0.3",
+    "@vitest/coverage-v8": "^4.0.16",
     "rimraf": "^6.1.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }
