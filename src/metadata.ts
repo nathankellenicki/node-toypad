@@ -7,18 +7,29 @@ export interface TagMetadata {
   world: string;
 }
 
+interface VehicleMetadata extends TagMetadata {
+  parentId: number;
+  map: number;
+  abilities: string[];
+}
+
 const characters = (charactersJson as TagMetadata[]) ?? [];
-const vehicles = (vehiclesJson as TagMetadata[]) ?? [];
+const vehicles = (vehiclesJson as VehicleMetadata[]) ?? [];
 
 const characterMap = new Map<number, TagMetadata>(characters.map((character) => [character.id, character]));
-const vehicleMap = new Map<number, TagMetadata>(vehicles.map((vehicle) => [vehicle.id, vehicle]));
+const vehicleMap = new Map<number, VehicleMetadata>(vehicles.map((vehicle) => [vehicle.id, vehicle]));
 
 export function getCharacterById(id: number): TagMetadata | undefined {
   return characterMap.get(id);
 }
 
 export function getVehicleById(id: number): TagMetadata | undefined {
-  return vehicleMap.get(id);
+  const vehicle = vehicleMap.get(id);
+  if (!vehicle) {
+    return undefined;
+  }
+  const { name, world } = vehicle;
+  return { id, name, world };
 }
 
 export function listCharacters(): TagMetadata[] {
@@ -26,5 +37,5 @@ export function listCharacters(): TagMetadata[] {
 }
 
 export function listVehicles(): TagMetadata[] {
-  return vehicles.slice();
+  return vehicles.map(({ id, name, world }) => ({ id, name, world }));
 }
