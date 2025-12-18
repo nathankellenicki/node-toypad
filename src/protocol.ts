@@ -101,6 +101,17 @@ export function createReadTagCommand(index: number, page: number): ToyPadCommand
   };
 }
 
+export function createWriteTagCommand(index: number, page: number, data: Buffer | number[]): ToyPadCommand {
+  const payload = Array.isArray(data) ? data.slice() : Array.from(data.values());
+  if (payload.length !== 16) {
+    throw new Error(`ToyPad write requires 16 bytes of data, received ${payload.length}.`);
+  }
+  return {
+    id: RequestType.WriteTag,
+    params: [index & 0xff, page & 0xff, ...payload.map((value) => value & 0xff)]
+  };
+}
+
 export function decodeColor(payload: Buffer): number {
   if (payload.length < 3) {
     return 0;

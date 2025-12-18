@@ -9,4 +9,4 @@ export {
   listCharacters,
   listVehicles
 } from "./metadata";
-export type { TagMetadata } from "./metadata";
+export type { TagMetadata, VehicleMetadata } from "./metadata";
