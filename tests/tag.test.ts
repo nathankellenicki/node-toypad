@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TagType, detectTagType, getCharacterId, getVehicleId, isVehicle } from "../src/tag";
+import { TagType, detectTagType, getCharacterId, getVehicleId, isVehicle } from "../src/tag.js";
 
 describe("tag utilities", () => {
   it("detects vehicles based on marker bytes", () => {
