@@ -4,6 +4,7 @@
   "description": "A JavaScript module to control the LEGO Dimensions Toy Pad",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist",

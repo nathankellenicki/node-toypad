@@ -1,3 +1,5 @@
+import { CharacterId, VehicleId } from "./ids.js";
+
 const VEHICLE_MARKER = Buffer.from([0x00, 0x01, 0x00, 0x00]);
 const TEA_DELTA = 0x9e3779b9;
 const TEA_SUM_INIT = 0xc6ef3720;
@@ -20,14 +22,14 @@ export function isVehicle(data: Buffer | Uint8Array): boolean {
   return true;
 }
 
-export function getVehicleId(data: Buffer | Uint8Array): number {
+export function getVehicleId(data: Buffer | Uint8Array): VehicleId {
   if (data.length < 2) {
     throw new Error("Vehicle data must contain at least 2 bytes.");
   }
-  return ((data[1]! & 0xff) << 8) | (data[0]! & 0xff);
+  return (((data[1]! & 0xff) << 8) | (data[0]! & 0xff)) as VehicleId;
 }
 
-export function getCharacterId(uid: Buffer | Uint8Array, encrypted: Buffer | Uint8Array): number {
+export function getCharacterId(uid: Buffer | Uint8Array, encrypted: Buffer | Uint8Array): CharacterId {
   if (uid.length !== 7) {
     throw new Error("UID must be exactly 7 bytes long.");
   }
@@ -39,9 +41,9 @@ export function getCharacterId(uid: Buffer | Uint8Array, encrypted: Buffer | Uin
   const values: [number, number] = [readUInt32LE(encrypted, 0), readUInt32LE(encrypted, 4)];
   const [v0, v1] = teaDecrypt(values, key);
   if (v0 !== v1) {
-    return 0;
+    return CharacterId.Unknown;
   }
-  return v0 & 0xffff;
+  return (v0 & 0xffff) as CharacterId;
 }
 
 export function detectTagType(block26: Buffer | Uint8Array): TagType {

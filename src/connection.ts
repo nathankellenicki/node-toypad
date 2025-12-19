@@ -6,7 +6,7 @@ import {
   TOY_PAD_PRODUCT_ID,
   TOY_PAD_VENDOR_ID,
   WAKE_SEQUENCE
-} from "./constants";
+} from "./constants.js";
 import {
   ToyPadCommand,
   ToyPadIncomingMessage,
@@ -14,7 +14,7 @@ import {
   ToyPadTagEvent,
   decodeMessage,
   encodeCommand
-} from "./protocol";
+} from "./protocol.js";
 
 const log = debug("node-toypad:connection");
 const rawLog = debug("node-toypad:connection:raw");

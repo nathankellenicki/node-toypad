@@ -1,28 +1,39 @@
-import charactersJson from "../data/minifigs.json";
-import vehiclesJson from "../data/vehicles.json";
+import charactersJson from "../data/minifigs.json" with { type: "json" };
+import vehiclesJson from "../data/vehicles.json" with { type: "json" };
+import upgradesJson from "../data/upgrades.json" with { type: "json" };
+import { CharacterId, VehicleId, UpgradeId } from "./ids.js";
+import { VEHICLE_MAP_BY_ID } from "./vehicle-map.js";
 
-export interface TagMetadata {
-  id: number;
+export interface CharacterMetadata {
+  id: CharacterId;
   name: string;
   world: string;
 }
 
-export interface VehicleMetadata extends TagMetadata {
-  parentId: number;
-  map: number;
-  abilities: string[];
+export interface VehicleMetadata {
+  id: VehicleId;
+  name: string;
+  world: string;
+  parentId: VehicleId;
   step?: number;
 }
 
-const characters = (charactersJson as TagMetadata[]) ?? [];
-const vehicles = (vehiclesJson as VehicleMetadata[]) ?? [];
+export interface UpgradeLabelMetadata {
+  id: UpgradeId;
+  label: string;
+}
 
-const characterMap = new Map<number, TagMetadata>(characters.map((character) => [character.id, character]));
-const vehicleMap = new Map<number, VehicleMetadata>(vehicles.map((vehicle) => [vehicle.id, vehicle]));
-const vehicleVariants = new Map<number, VehicleMetadata[]>();
+const characters = (charactersJson as CharacterMetadata[]) ?? [];
+const vehicles = (vehiclesJson as VehicleMetadata[]) ?? [];
+const upgrades = (upgradesJson as UpgradeLabelMetadata[]) ?? [];
+
+const characterMap = new Map<CharacterId, CharacterMetadata>(characters.map((character) => [character.id as CharacterId, character]));
+const vehicleMap = new Map<VehicleId, VehicleMetadata>(vehicles.map((vehicle) => [vehicle.id as VehicleId, vehicle]));
+const vehicleVariants = new Map<VehicleId, VehicleMetadata[]>();
+const upgradeLabelMap = new Map<UpgradeId, string>(upgrades.map((entry) => [entry.id as UpgradeId, entry.label]));
 
 for (const vehicle of vehicles) {
-  const parentId = vehicle.parentId || vehicle.id;
+  const parentId = (vehicle.parentId || vehicle.id) as VehicleId;
   const variants = vehicleVariants.get(parentId) ?? [];
   variants.push(vehicle);
   vehicleVariants.set(parentId, variants);
@@ -39,15 +50,15 @@ for (const [parentId, variants] of vehicleVariants.entries()) {
   });
 }
 
-export function getCharacterById(id: number): TagMetadata | undefined {
+export function getCharacterById(id: CharacterId): CharacterMetadata | undefined {
   return characterMap.get(id);
 }
 
-export function getVehicleById(id: number): VehicleMetadata | undefined {
+export function getVehicleById(id: VehicleId): VehicleMetadata | undefined {
   return vehicleMap.get(id);
 }
 
-export function getVehicleVariant(id: number, step?: number): VehicleMetadata | undefined {
+export function getVehicleVariant(id: VehicleId, step?: number): VehicleMetadata | undefined {
   if (typeof step === "number") {
     const variants = vehicleVariants.get(id);
     if (!variants) {
@@ -68,10 +79,22 @@ export function getVehicleVariant(id: number, step?: number): VehicleMetadata | 
   return stepIndex >= 0 ? { ...vehicle, step: stepIndex } : vehicle;
 }
 
-export function listCharacters(): TagMetadata[] {
+export function listCharacters(): CharacterMetadata[] {
   return characters.slice();
 }
 
 export function listVehicles(): VehicleMetadata[] {
   return vehicles.slice();
+}
+
+export function getUpgradeLabel(id: UpgradeId): string | undefined {
+  return upgradeLabelMap.get(id);
+}
+
+export function listUpgradeLabels(): UpgradeLabelMetadata[] {
+  return upgrades.slice();
+}
+
+export function getVehicleMap(id: VehicleId): number {
+  return VEHICLE_MAP_BY_ID[id] ?? 0;
 }

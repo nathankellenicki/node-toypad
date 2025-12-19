@@ -1,4 +1,4 @@
-import { ActionType, CommandType, MessageType, PACKET_LENGTH, RequestType, ToyPadPanel } from "./constants";
+import { ActionType, CommandType, MessageType, PACKET_LENGTH, RequestType, ToyPadPanel } from "./constants.js";
 
 export interface ToyPadCommand {
   id: RequestType | number;
