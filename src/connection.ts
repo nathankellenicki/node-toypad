@@ -60,6 +60,16 @@ export class ToyPadConnection extends EventEmitter {
     this.writeRaw(WAKE_SEQUENCE);
   }
 
+  send(command: ToyPadCommand): void {
+    if (!this.device) {
+      throw new Error("ToyPad is not connected");
+    }
+    const requestId = this.nextRequestId();
+    const encoded = encodeCommand(command, requestId);
+    rawLog("tx %s", encoded.toString("hex"));
+    this.writeRaw(encoded);
+  }
+
   async request(command: ToyPadCommand, timeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS): Promise<Buffer> {
     if (!this.device) {
       throw new Error("ToyPad is not connected");

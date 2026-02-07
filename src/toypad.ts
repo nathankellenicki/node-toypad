@@ -118,9 +118,9 @@ export class ToyPad extends EventEmitter {
     this.emit("disconnect");
   }
 
-  async setColor(panel: ToyPadPanel, color: number): Promise<void> {
+  setColor(panel: ToyPadPanel, color: number): void {
     const connection = this.ensureConnection();
-    await connection.request(createSetColorCommand(panel, color));
+    connection.send(createSetColorCommand(panel, color));
   }
 
   async getColor(panel: ToyPadPanel): Promise<number> {
@@ -129,14 +129,14 @@ export class ToyPad extends EventEmitter {
     return decodeColor(response);
   }
 
-  async fade(panel: ToyPadPanel, speed: number, cycles: number, color: number): Promise<void> {
+  fade(panel: ToyPadPanel, speed: number, cycles: number, color: number): void {
     const connection = this.ensureConnection();
-    await connection.request(createFadeCommand(panel, speed, cycles, color));
+    connection.send(createFadeCommand(panel, speed, cycles, color));
   }
 
-  async flash(panel: ToyPadPanel, color: number, count: number, options?: FlashOptions): Promise<void> {
+  flash(panel: ToyPadPanel, color: number, count: number, options?: FlashOptions): void {
     const connection = this.ensureConnection();
-    await connection.request(createFlashCommand(panel, color, count, options));
+    connection.send(createFlashCommand(panel, color, count, options));
   }
 
   async readTag(panel: ToyPadPanel, signature?: string): Promise<ToyPadTagInfo> {

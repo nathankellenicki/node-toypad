@@ -26,7 +26,7 @@ toyPad.on("add", async (event) => {
   panelAssignments.set(event.panel, assignments);
   const merged = Array.from(assignments.values()).reduce((acc, value) => acc | value, 0);
   // Fade the panel's light to the merged color of all characters present
-  await toyPad.fade(event.panel, 10, 1, merged);
+  toyPad.fade(event.panel, 10, 1, merged);
 });
 
 toyPad.on("remove", async (event) => {
@@ -37,5 +37,5 @@ toyPad.on("remove", async (event) => {
   assignments.delete(event.signature);
   const merged = Array.from(assignments.values()).reduce((acc, value) => acc | value, 0);
   // Fade the panel's light to the merged color of all characters present
-  await toyPad.fade(event.panel, 10, 1, merged);
+  toyPad.fade(event.panel, 10, 1, merged);
 });
