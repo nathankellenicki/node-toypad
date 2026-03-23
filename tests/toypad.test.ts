@@ -4,6 +4,7 @@ import { ActionType, RequestType, ToyPadPanel } from "../src/constants.js";
 import type { ToyPadTagEvent } from "../src/protocol.js";
 import { CharacterId, UpgradeId, VehicleId } from "../src/ids.js";
 import { decodeUpgradePayload, encodePresetPayload, encodeUpgradePayload } from "../src/upgrades.js";
+import { TagType } from "../src/tag.js";
 
 function makeEvent(panel: ToyPadPanel, index: number, signatureBytes: number[]): ToyPadTagEvent {
   const raw = Buffer.from(signatureBytes);
@@ -362,5 +363,128 @@ describe("ToyPad tag tracking", () => {
     const result = await (toyPad as any).readUpgradeBlock(tag);
     expect(result).toBe(block);
     expect(readBlock).toHaveBeenCalledTimes(2);
+  });
+
+  it("lists tags from the portal", async () => {
+    const toyPad = new ToyPad();
+    const responsePayload = Buffer.from([0x30, 0x00, 0x21, 0x00]);
+    const request = vi.fn().mockResolvedValue(responsePayload);
+    (toyPad as any).connection = { request };
+
+    const tags = await toyPad.listTags();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].id).toBe(RequestType.ListTags);
+    expect(tags).toEqual([
+      { panel: ToyPadPanel.Right, index: 0, status: "ok" },
+      { panel: ToyPadPanel.Left, index: 1, status: "ok" }
+    ]);
+  });
+
+  it("reads a character tag by index, fetching UID from page 0", async () => {
+    const toyPad = new ToyPad();
+
+    // Page 0: UID bytes at [0,1,2] and [4,5,6,7]
+    // UID = 04 47 37 e2 48 3f 80
+    const page0Data = Buffer.alloc(16, 0);
+    page0Data[0] = 0x04; page0Data[1] = 0x47; page0Data[2] = 0x37;
+    page0Data[3] = 0x88; // BCC0 (ignored)
+    page0Data[4] = 0xe2; page0Data[5] = 0x48; page0Data[6] = 0x3f; page0Data[7] = 0x80;
+    const page0Response = Buffer.concat([Buffer.from([0x00]), page0Data]);
+
+    // Page 0x24: encrypted character data for Emmet with this UID
+    const encrypted = Buffer.from([0x5c, 0xf7, 0x1c, 0xde, 0x29, 0xad, 0xea, 0x08]);
+    const cardData = Buffer.concat([encrypted, Buffer.alloc(8, 0)]);
+    const page24Response = Buffer.concat([Buffer.from([0x00]), cardData]);
+
+    const request = vi.fn()
+      .mockResolvedValueOnce(page0Response)
+      .mockResolvedValueOnce(page24Response);
+    (toyPad as any).connection = { request };
+
+    const result = await toyPad.readTag(ToyPadPanel.Center, 3);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[0][0].id).toBe(RequestType.ReadTag);
+    expect(request.mock.calls[0][0].params[1]).toBe(0x00);
+    expect(request.mock.calls[1][0].params[1]).toBe(0x24);
+    expect(result.id).toBe(CharacterId.Emmet);
+    expect(result.type).toBe(TagType.Character);
+    expect(result.signature).toBe("04 47 37 e2 48 3f 80");
+  });
+
+  it("reads a vehicle tag by index", async () => {
+    const toyPad = new ToyPad();
+
+    const page0Data = Buffer.alloc(16, 0);
+    page0Data[0] = 0x04; page0Data[1] = 0x11; page0Data[2] = 0x22;
+    page0Data[4] = 0x33; page0Data[5] = 0x44; page0Data[6] = 0x55; page0Data[7] = 0x66;
+    const page0Response = Buffer.concat([Buffer.from([0x00]), page0Data]);
+
+    const vehicleCardData = Buffer.alloc(16, 0);
+    vehicleCardData.writeUInt16LE(1000, 0);
+    vehicleCardData.set([0x00, 0x01, 0x00, 0x00], 8);
+    const page24Response = Buffer.concat([Buffer.from([0x00]), vehicleCardData]);
+
+    const request = vi.fn()
+      .mockResolvedValueOnce(page0Response)
+      .mockResolvedValueOnce(page24Response);
+    (toyPad as any).connection = { request };
+
+    const result = await toyPad.readTag(ToyPadPanel.Left, 5);
+    expect(result.id).toBe(VehicleId.PoliceCar);
+    expect(result.type).toBe(TagType.Vehicle);
+  });
+
+  it("sends setColors command", () => {
+    const toyPad = new ToyPad();
+    const send = vi.fn();
+    (toyPad as any).connection = { send };
+
+    toyPad.setColors(0xff0000, null, 0x0000ff);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].id).toBe(RequestType.SetColorAll);
+  });
+
+  it("sends fadeAll command", () => {
+    const toyPad = new ToyPad();
+    const send = vi.fn();
+    (toyPad as any).connection = { send };
+
+    toyPad.fadeAll({ speed: 10, cycles: 1, color: 0xff0000 }, null, null);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].id).toBe(RequestType.FadeAll);
+  });
+
+  it("sends flashAll command", () => {
+    const toyPad = new ToyPad();
+    const send = vi.fn();
+    (toyPad as any).connection = { send };
+
+    toyPad.flashAll({ color: 0xff0000, count: 3 }, null, null);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].id).toBe(RequestType.FlashAll);
+  });
+
+  it("sends fade command with params object", () => {
+    const toyPad = new ToyPad();
+    const send = vi.fn();
+    (toyPad as any).connection = { send };
+
+    toyPad.fade(ToyPadPanel.Left, { speed: 5, cycles: 2, color: 0xaa33ff });
+    expect(send).toHaveBeenCalledTimes(1);
+    const command = send.mock.calls[0][0];
+    expect(command.id).toBe(RequestType.Fade);
+    expect(command.params).toEqual([ToyPadPanel.Left, 5, 2, 0xaa, 0x33, 0xff]);
+  });
+
+  it("sends flash command with params object", () => {
+    const toyPad = new ToyPad();
+    const send = vi.fn();
+    (toyPad as any).connection = { send };
+
+    toyPad.flash(ToyPadPanel.Center, { color: 0x0a0b0c, count: 3, onTicks: 1, offTicks: 2 });
+    expect(send).toHaveBeenCalledTimes(1);
+    const command = send.mock.calls[0][0];
+    expect(command.id).toBe(RequestType.Flash);
+    expect(command.params).toEqual([ToyPadPanel.Center, 2, 1, 3, 0x0a, 0x0b, 0x0c]);
   });
 });

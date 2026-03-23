@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { ActionType, ToyPadPanel } from "../src/constants.js";
 import {
   createFadeCommand,
+  createFadeAllCommand,
   createFlashCommand,
+  createFlashAllCommand,
   createGetColorCommand,
+  createListTagsCommand,
   createSetColorCommand,
+  createSetColorAllCommand,
   createWriteTagCommand,
   decodeColor,
+  decodeListTagsResponse,
   decodeMessage,
   encodeCommand,
   type ToyPadCommand
@@ -38,17 +43,17 @@ describe("protocol helpers", () => {
   });
 
   it("builds fade commands with masked colors", () => {
-    const command = createFadeCommand(ToyPadPanel.Left, 5, 2, 0xffaa33ff);
+    const command = createFadeCommand(ToyPadPanel.Left, { speed: 5, cycles: 2, color: 0xffaa33ff });
     expect(command.id).toBe(0xc2);
     expect(command.params).toEqual([ToyPadPanel.Left, 5, 2, 0xaa, 0x33, 0xff]);
   });
 
   it("builds flash commands with default and custom tick values", () => {
-    const defaultFlash = createFlashCommand(ToyPadPanel.Center, 0x0a0b0c, 3);
+    const defaultFlash = createFlashCommand(ToyPadPanel.Center, { color: 0x0a0b0c, count: 3 });
     expect(defaultFlash.id).toBe(0xc3);
     expect(defaultFlash.params.slice(1, 4)).toEqual([10, 10, 3]);
 
-    const customFlash = createFlashCommand(ToyPadPanel.Center, 0x0a0b0c, 3, { onTicks: 1, offTicks: 2 });
+    const customFlash = createFlashCommand(ToyPadPanel.Center, { color: 0x0a0b0c, count: 3, onTicks: 1, offTicks: 2 });
     expect(customFlash.params.slice(1, 4)).toEqual([2, 1, 3]);
   });
 
@@ -122,5 +127,81 @@ describe("protocol helpers", () => {
     const command: ToyPadCommand = { id: 0xc0, params };
     const encoded = encodeCommand(command, 1);
     expect(encoded.length).toBe(32);
+  });
+
+  it("builds setColorAll commands with per-pad colors", () => {
+    const command = createSetColorAllCommand(0xff0000, 0x00ff00, 0x0000ff);
+    expect(command.id).toBe(0xc8);
+    expect(command.params).toEqual([
+      1, 0xff, 0x00, 0x00,
+      1, 0x00, 0xff, 0x00,
+      1, 0x00, 0x00, 0xff
+    ]);
+  });
+
+  it("builds setColorAll commands with null pads skipped", () => {
+    const command = createSetColorAllCommand(null, 0x00ff00, null);
+    expect(command.params).toEqual([
+      0, 0, 0, 0,
+      1, 0x00, 0xff, 0x00,
+      0, 0, 0, 0
+    ]);
+  });
+
+  it("builds fadeAll commands with per-pad params", () => {
+    const command = createFadeAllCommand(
+      { speed: 10, cycles: 1, color: 0xff0000 },
+      null,
+      { speed: 20, cycles: 3, color: 0x0000ff }
+    );
+    expect(command.id).toBe(0xc6);
+    expect(command.params).toEqual([
+      10, 1, 0xff, 0x00, 0x00,
+      0, 0, 0, 0, 0,
+      20, 3, 0x00, 0x00, 0xff
+    ]);
+  });
+
+  it("builds flashAll commands with per-pad params", () => {
+    const command = createFlashAllCommand(
+      { color: 0xff0000, count: 5, onTicks: 3, offTicks: 7 },
+      null,
+      { color: 0x0000ff, count: 2 }
+    );
+    expect(command.id).toBe(0xc7);
+    expect(command.params).toEqual([
+      7, 3, 5, 0xff, 0x00, 0x00,
+      0, 0, 0, 0, 0, 0,
+      10, 10, 2, 0x00, 0x00, 0xff
+    ]);
+  });
+
+  it("builds listTags commands with no params", () => {
+    const command = createListTagsCommand();
+    expect(command.id).toBe(0xd0);
+    expect(command.params).toEqual([]);
+  });
+
+  it("decodes listTags responses with multiple tags", () => {
+    const payload = Buffer.from([0x30, 0x00, 0x21, 0x00, 0x14, 0x08]);
+    const entries = decodeListTagsResponse(payload);
+    expect(entries).toEqual([
+      { panel: ToyPadPanel.Right, index: 0, status: "ok" },
+      { panel: ToyPadPanel.Left, index: 1, status: "ok" },
+      { panel: ToyPadPanel.Center, index: 4, status: "error" }
+    ]);
+  });
+
+  it("decodes listTags responses with no tags", () => {
+    const entries = decodeListTagsResponse(Buffer.alloc(0));
+    expect(entries).toEqual([]);
+  });
+
+  it("skips listTags entries with invalid panel numbers", () => {
+    const payload = Buffer.from([0x00, 0x00, 0x21, 0x00]);
+    const entries = decodeListTagsResponse(payload);
+    expect(entries).toEqual([
+      { panel: ToyPadPanel.Left, index: 1, status: "ok" }
+    ]);
   });
 });

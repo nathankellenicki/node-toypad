@@ -1,6 +1,6 @@
 {
   "name": "node-toypad",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "A JavaScript module to control the LEGO Dimensions ToyPad",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
