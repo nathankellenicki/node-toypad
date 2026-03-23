@@ -30,6 +30,7 @@ export enum RequestType {
   FadeAll = 0xc6,
   FlashAll = 0xc7,
   SetColorAll = 0xc8,
+  ListTags = 0xd0,
   ReadTag = 0xd2,
   WriteTag = 0xd3
 }

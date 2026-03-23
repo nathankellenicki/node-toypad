@@ -1,7 +1,7 @@
 export { ToyPad } from "./toypad.js";
 export type { ToyPadTagEvent, ToyPadTagInfo, WriteVehicleUpgradesOptions, ReadVehicleUpgradesOptions } from "./toypad.js";
 export { ToyPadPanel, ActionType } from "./constants.js";
-export type { FadeParams, FlashParams } from "./protocol.js";
+export type { FadeParams, FlashParams, ListTagsEntry } from "./protocol.js";
 export { TagType } from "./tag.js";
 export { CharacterId, VehicleId, UpgradeId, AnyTagId } from "./ids.js";
 export {

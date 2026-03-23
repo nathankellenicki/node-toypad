@@ -5,17 +5,21 @@ import { ActionType, ToyPadPanel } from "./constants.js";
 import {
   FadeParams,
   FlashParams,
+  ListTagsEntry,
   ToyPadTagEvent,
   createFadeCommand,
   createFadeAllCommand,
   createFlashCommand,
   createFlashAllCommand,
   createGetColorCommand,
+  createListTagsCommand,
   createReadTagCommand,
   createSetColorCommand,
   createSetColorAllCommand,
   createWriteTagCommand,
-  decodeColor
+  decodeColor,
+  decodeListTagsResponse,
+  formatSignature
 } from "./protocol.js";
 import { TagType, detectTagType, getCharacterId, getVehicleId } from "./tag.js";
 import { CharacterId, VehicleId, UpgradeId } from "./ids.js";
@@ -158,8 +162,19 @@ export class ToyPad extends EventEmitter {
     connection.send(createFlashAllCommand(center, left, right));
   }
 
-  async readTag(panel: ToyPadPanel, signature?: string): Promise<ToyPadTagInfo> {
-    const tag = this.resolveActiveTag(panel, signature);
+  async listTags(): Promise<ListTagsEntry[]> {
+    const connection = this.ensureConnection();
+    const response = await connection.request(createListTagsCommand());
+    return decodeListTagsResponse(response);
+  }
+
+  async readTag(panel: ToyPadPanel, indexOrSignature?: number | string): Promise<ToyPadTagInfo> {
+    if (typeof indexOrSignature === "number") {
+      const tag = await this.resolveTagByIndex(indexOrSignature);
+      const info = await this.readTagData(tag);
+      return { ...info, signature: tag.signature };
+    }
+    const tag = this.resolveActiveTag(panel, indexOrSignature);
     const info = await this.readTagData(tag);
     return { ...info, signature: tag.signature };
   }
@@ -295,6 +310,17 @@ export class ToyPad extends EventEmitter {
     throw new Error(`Multiple tags present on panel ${panel}. Specify signature (${available}).`);
   }
 
+  private async resolveTagByIndex(index: number): Promise<ActiveTag> {
+    const connection = this.ensureConnection();
+    const page0 = await this.readBlockByIndex(index, 0x00, connection);
+    const uid = Buffer.from([
+      page0[0]!, page0[1]!, page0[2]!,
+      page0[4]!, page0[5]!, page0[6]!, page0[7]!
+    ]);
+    const signature = formatSignature(uid);
+    return { index, uid, signature };
+  }
+
   private async readTagData(tag: ActiveTag): Promise<BasicTagInfo> {
     const connection = this.ensureConnection();
     const cardData = await this.readBlock(tag, 0x24, connection);
@@ -384,8 +410,12 @@ export class ToyPad extends EventEmitter {
   }
 
   private async readBlock(tag: ActiveTag, page: number, connection?: ToyPadConnection): Promise<Buffer> {
+    return this.readBlockByIndex(tag.index, page, connection);
+  }
+
+  private async readBlockByIndex(index: number, page: number, connection?: ToyPadConnection): Promise<Buffer> {
     const activeConnection = connection ?? this.ensureConnection();
-    const payload = await activeConnection.request(createReadTagCommand(tag.index, page));
+    const payload = await activeConnection.request(createReadTagCommand(index, page));
     if (payload.length < 17) {
       throw new Error("ToyPad returned an invalid read response.");
     }

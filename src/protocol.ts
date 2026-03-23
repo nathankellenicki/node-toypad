@@ -150,6 +150,33 @@ export function createFlashAllCommand(
   return { id: RequestType.FlashAll, params };
 }
 
+export interface ListTagsEntry {
+  panel: ToyPadPanel;
+  index: number;
+  status: "ok" | "error";
+}
+
+export function createListTagsCommand(): ToyPadCommand {
+  return { id: RequestType.ListTags, params: [] };
+}
+
+export function decodeListTagsResponse(payload: Buffer): ListTagsEntry[] {
+  const entries: ListTagsEntry[] = [];
+  for (let i = 0; i + 1 < payload.length; i += 2) {
+    const byte0 = payload[i]!;
+    const byte1 = payload[i + 1]!;
+    const panel = (byte0 >> 4) & 0x0f;
+    const index = byte0 & 0x0f;
+    if (panel < 1 || panel > 3) continue;
+    entries.push({
+      panel: panel as ToyPadPanel,
+      index,
+      status: byte1 === 0x00 ? "ok" : "error"
+    });
+  }
+  return entries;
+}
+
 export function createReadTagCommand(index: number, page: number): ToyPadCommand {
   return {
     id: RequestType.ReadTag,
@@ -266,7 +293,7 @@ function normalizePacket(data: Buffer): Buffer {
   return data;
 }
 
-function formatSignature(buffer: Buffer): string {
+export function formatSignature(buffer: Buffer): string {
   return Array.from(buffer)
     .map((value) => value.toString(16).padStart(2, "0"))
     .join(" ");
