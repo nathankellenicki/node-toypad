@@ -3,13 +3,17 @@ import { EventEmitter } from "events";
 import { ToyPadConnection } from "./connection.js";
 import { ActionType, ToyPadPanel } from "./constants.js";
 import {
-  FlashOptions,
+  FadeParams,
+  FlashParams,
   ToyPadTagEvent,
   createFadeCommand,
+  createFadeAllCommand,
   createFlashCommand,
+  createFlashAllCommand,
   createGetColorCommand,
   createReadTagCommand,
   createSetColorCommand,
+  createSetColorAllCommand,
   createWriteTagCommand,
   decodeColor
 } from "./protocol.js";
@@ -129,14 +133,29 @@ export class ToyPad extends EventEmitter {
     return decodeColor(response);
   }
 
-  fade(panel: ToyPadPanel, speed: number, cycles: number, color: number): void {
+  fade(panel: ToyPadPanel, params: FadeParams): void {
     const connection = this.ensureConnection();
-    connection.send(createFadeCommand(panel, speed, cycles, color));
+    connection.send(createFadeCommand(panel, params));
   }
 
-  flash(panel: ToyPadPanel, color: number, count: number, options?: FlashOptions): void {
+  flash(panel: ToyPadPanel, params: FlashParams): void {
     const connection = this.ensureConnection();
-    connection.send(createFlashCommand(panel, color, count, options));
+    connection.send(createFlashCommand(panel, params));
+  }
+
+  setColors(center?: number | null, left?: number | null, right?: number | null): void {
+    const connection = this.ensureConnection();
+    connection.send(createSetColorAllCommand(center, left, right));
+  }
+
+  fadeAll(center?: FadeParams | null, left?: FadeParams | null, right?: FadeParams | null): void {
+    const connection = this.ensureConnection();
+    connection.send(createFadeAllCommand(center, left, right));
+  }
+
+  flashAll(center?: FlashParams | null, left?: FlashParams | null, right?: FlashParams | null): void {
+    const connection = this.ensureConnection();
+    connection.send(createFlashAllCommand(center, left, right));
   }
 
   async readTag(panel: ToyPadPanel, signature?: string): Promise<ToyPadTagInfo> {

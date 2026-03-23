@@ -27,6 +27,9 @@ export enum RequestType {
   GetColor = 0xc1,
   Fade = 0xc2,
   Flash = 0xc3,
+  FadeAll = 0xc6,
+  FlashAll = 0xc7,
+  SetColorAll = 0xc8,
   ReadTag = 0xd2,
   WriteTag = 0xd3
 }

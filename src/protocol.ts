@@ -23,7 +23,15 @@ export interface ToyPadTagEvent {
 
 export type ToyPadIncomingMessage = ToyPadResponseMessage | ToyPadTagEvent;
 
-export interface FlashOptions {
+export interface FadeParams {
+  speed: number;
+  cycles: number;
+  color: number;
+}
+
+export interface FlashParams {
+  color: number;
+  count: number;
   onTicks?: number;
   offTicks?: number;
 }
@@ -71,27 +79,75 @@ export function createGetColorCommand(panel: ToyPadPanel): ToyPadCommand {
   };
 }
 
-export function createFadeCommand(panel: ToyPadPanel, speed: number, cycles: number, color: number): ToyPadCommand {
-  const rgb = normalizeColor(color);
+export function createFadeCommand(panel: ToyPadPanel, params: FadeParams): ToyPadCommand {
+  const rgb = normalizeColor(params.color);
   return {
     id: RequestType.Fade,
-    params: [panel & 0xff, speed & 0xff, cycles & 0xff, rgb.red, rgb.green, rgb.blue]
+    params: [panel & 0xff, params.speed & 0xff, params.cycles & 0xff, rgb.red, rgb.green, rgb.blue]
   };
 }
 
-export function createFlashCommand(
-  panel: ToyPadPanel,
-  color: number,
-  count: number,
-  options: FlashOptions = {}
-): ToyPadCommand {
-  const rgb = normalizeColor(color);
-  const offTicks = (options.offTicks ?? 10) & 0xff;
-  const onTicks = (options.onTicks ?? 10) & 0xff;
+export function createFlashCommand(panel: ToyPadPanel, params: FlashParams): ToyPadCommand {
+  const rgb = normalizeColor(params.color);
+  const offTicks = (params.offTicks ?? 10) & 0xff;
+  const onTicks = (params.onTicks ?? 10) & 0xff;
   return {
     id: RequestType.Flash,
-    params: [panel & 0xff, offTicks, onTicks, count & 0xff, rgb.red, rgb.green, rgb.blue]
+    params: [panel & 0xff, offTicks, onTicks, params.count & 0xff, rgb.red, rgb.green, rgb.blue]
   };
+}
+
+export function createSetColorAllCommand(
+  center?: number | null,
+  left?: number | null,
+  right?: number | null
+): ToyPadCommand {
+  const params: number[] = [];
+  for (const color of [center, left, right]) {
+    if (color != null) {
+      const rgb = normalizeColor(color);
+      params.push(1, rgb.red, rgb.green, rgb.blue);
+    } else {
+      params.push(0, 0, 0, 0);
+    }
+  }
+  return { id: RequestType.SetColorAll, params };
+}
+
+export function createFadeAllCommand(
+  center?: FadeParams | null,
+  left?: FadeParams | null,
+  right?: FadeParams | null
+): ToyPadCommand {
+  const params: number[] = [];
+  for (const pad of [center, left, right]) {
+    if (pad != null) {
+      const rgb = normalizeColor(pad.color);
+      params.push(pad.speed & 0xff, pad.cycles & 0xff, rgb.red, rgb.green, rgb.blue);
+    } else {
+      params.push(0, 0, 0, 0, 0);
+    }
+  }
+  return { id: RequestType.FadeAll, params };
+}
+
+export function createFlashAllCommand(
+  center?: FlashParams | null,
+  left?: FlashParams | null,
+  right?: FlashParams | null
+): ToyPadCommand {
+  const params: number[] = [];
+  for (const pad of [center, left, right]) {
+    if (pad != null) {
+      const rgb = normalizeColor(pad.color);
+      const offTicks = (pad.offTicks ?? 10) & 0xff;
+      const onTicks = (pad.onTicks ?? 10) & 0xff;
+      params.push(offTicks, onTicks, pad.count & 0xff, rgb.red, rgb.green, rgb.blue);
+    } else {
+      params.push(0, 0, 0, 0, 0, 0);
+    }
+  }
+  return { id: RequestType.FlashAll, params };
 }
 
 export function createReadTagCommand(index: number, page: number): ToyPadCommand {
